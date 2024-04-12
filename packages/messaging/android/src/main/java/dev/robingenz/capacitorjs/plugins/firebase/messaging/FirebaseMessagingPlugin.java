@@ -1,6 +1,8 @@
 package dev.robingenz.capacitorjs.plugins.firebase.messaging;
 
+import android.Manifest;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
@@ -8,21 +10,27 @@ import androidx.annotation.NonNull;
 import com.getcapacitor.Bridge;
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginHandle;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 import com.google.firebase.messaging.RemoteMessage;
 import java.util.ArrayList;
 import java.util.List;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-@CapacitorPlugin(name = "FirebaseMessaging", permissions = @Permission(strings = {}, alias = "receive"))
+@CapacitorPlugin(
+        name = "FirebaseMessaging",
+        permissions = @Permission(strings = { Manifest.permission.POST_NOTIFICATIONS }, alias = FirebaseMessagingPlugin.PUSH_NOTIFICATIONS)
+)
 public class FirebaseMessagingPlugin extends Plugin {
 
+    public static final String PUSH_NOTIFICATIONS = "receive";
     public static final String TAG = "FirebaseMessaging";
     public static final String TOKEN_RECEIVED_EVENT = "tokenReceived";
     public static final String NOTIFICATION_RECEIVED_EVENT = "notificationReceived";
@@ -73,6 +81,34 @@ public class FirebaseMessagingPlugin extends Plugin {
             plugin.handleNotificationReceived(remoteMessage);
         } else {
             lastRemoteMessage = remoteMessage;
+        }
+    }
+
+    @Override
+    @PluginMethod
+    public void checkPermissions(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            JSObject result = new JSObject();
+            result.put("receive", "granted");
+            call.resolve(result);
+        } else {
+            super.checkPermissions(call);
+        }
+    }
+
+    @Override
+    @PluginMethod
+    public void requestPermissions(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            JSObject result = new JSObject();
+            result.put("receive", "granted");
+            call.resolve(result);
+        } else {
+            if (getPermissionState(PUSH_NOTIFICATIONS) == PermissionState.GRANTED) {
+                this.checkPermissions(call);
+            } else {
+                requestPermissionForAlias(PUSH_NOTIFICATIONS, call, "permissionsCallback");
+            }
         }
     }
 
@@ -210,6 +246,12 @@ public class FirebaseMessagingPlugin extends Plugin {
             call.reject(ex.getLocalizedMessage());
         }
     }
+
+    @PermissionCallback
+    private void permissionsCallback(PluginCall call) {
+        this.checkPermissions(call);
+    }
+
 
     private void handleTokenReceived(@NonNull String token) {
         JSObject result = new JSObject();
