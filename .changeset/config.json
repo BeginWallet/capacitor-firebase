@@ -17,7 +17,7 @@
   ],
   "linked": [],
   "access": "public",
-  "baseBranch": "main",
+  "baseBranch": "feature/android-13-support",
   "updateInternalDependencies": "patch",
   "ignore": []
 }

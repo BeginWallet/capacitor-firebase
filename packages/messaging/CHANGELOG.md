@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+
+### Patch Changes
+
+- Add Android 13+ Support
+
 ## 0.5.1
 
 ### Patch Changes
